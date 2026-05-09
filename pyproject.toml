@@ -1,0 +1,23 @@
+[project]
+name = "llm-se-agent"
+version = "0.1.0"
+description = "基于大语言模型的软件工程智能体"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "openai>=1.0.0",
+    "pytest>=8.0.0",
+    "pytest-json-report>=1.5.0",
+]
+
+[project.scripts]
+se-agent = "agent.main:main"
+
+[tool.setuptools.packages.find]
+include = ["agent*"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
