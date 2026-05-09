@@ -1,65 +1,118 @@
 # LLM-Based Software Engineering Agent
 
-基于大语言模型的软件工程智能体，支持 **需求分析 → 系统设计 → 代码实现 → 测试执行 → 自动修复** 的完整自动化流水线。
+基于大语言模型的软件工程智能体，覆盖 **需求分析 → 系统设计 → 代码实现 → 测试执行 → 自动修复** 全流程。课程项目，满足"分析+设计+实现+测试"四阶段连续覆盖。
 
-## 系统要求
+## 安装
 
-- Python 3.11+
-- DeepSeek API Key
+### PowerShell
 
-## 快速开始
+```powershell
+# 1. 克隆仓库
+git clone https://github.com/UserLiTanYu/LLM-.git
+cd LLM-
 
-```bash
-# 安装依赖
+# 2. 创建虚拟环境并激活
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+venv\Scripts\activate
 
-# 设置 API Key
-export DEEPSEEK_API_KEY="sk-your-key"  # Windows: set DEEPSEEK_API_KEY=sk-your-key
-
-# 运行完整流水线
-python -m agent.main --task generate --input benchmarks/cases/case1_calculator/requirements.md --output output/
+# 3. 安装（含全部依赖，注册 se-agent 命令）
+pip install -e .
 ```
 
-## CLI 命令
+### CMD
 
-```bash
-# 完整流水线（设计 + 实现 + 测试 + 修复）
-python -m agent.main --task generate --input <需求文件.md> --output <输出目录>
+```cmd
+:: 1. 克隆仓库
+git clone https://github.com/UserLiTanYu/LLM-.git
+cd LLM-
+
+:: 2. 创建虚拟环境并激活
+python -m venv venv
+venv\Scripts\activate
+
+:: 3. 安装（含全部依赖，注册 se-agent 命令）
+pip install -e .
+```
+
+### 一键安装（推荐，无需手动克隆）
+
+把下面一行粘贴到终端执行即可，脚本会自动完成：克隆仓库 → 创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令。
+
+```powershell
+# PowerShell（系统自带 5.x 版本请用 ; 分隔）
+curl -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.cmd -o install.cmd; .\install.cmd; del install.cmd
+```
+
+```cmd
+:: CMD
+curl -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+## 使用
+
+### PowerShell
+
+```powershell
+# 设置密钥（每次新开终端执行一次）
+$env:DEEPSEEK_API_KEY = "sk-your-key"
+
+# 完整流水线
+se-agent --task generate --input 需求文档.md --output output/
 
 # 仅设计阶段
-python -m agent.main --task design --input <需求文件.md> --output <输出目录>
+se-agent --task design --input 需求文档.md --output output/
 
-# 参数说明
-python -m agent.main --help
+# 指定密钥和最大修复次数
+se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
 ```
+
+### CMD
+
+```cmd
+:: 设置密钥（每次新开终端执行一次）
+set DEEPSEEK_API_KEY=sk-your-key
+
+:: 完整流水线
+se-agent --task generate --input 需求文档.md --output output/
+
+:: 仅设计阶段
+se-agent --task design --input 需求文档.md --output output/
+
+:: 指定密钥和最大修复次数
+se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
+```
+
+## 基准测试结果
+
+| 场景 | 用例数 | 通过 | 修复迭代 | 结果 |
+|------|--------|------|----------|------|
+| 计算器模块 | 53 | 51 | 3轮 | 96.2% |
+
+**剩余 2 个失败分析**：均为测试生成偏差——浮点精度比较未用 `pytest.approx`、边界用例与需求矛盾（期望除以零返回 ∞ 而非抛异常），属测试生成质量问题而非代码 Bug。
 
 ## 项目结构
 
 ```
 ├── agent/                      # 智能体核心
-│   ├── main.py                 # CLI入口
-│   ├── orchestrator.py         # LangGraph工作流编排
+│   ├── main.py                 # CLI入口 → se-agent 命令
+│   ├── orchestrator.py         # LangGraph 工作流编排
 │   ├── config.py               # 配置管理
 │   ├── nodes/                  # 处理节点
-│   │   ├── design.py           # 设计节点（需求→UML）
-│   │   ├── implement.py        # 实现节点（设计→代码）
-│   │   ├── test.py             # 测试节点（生成+执行）
-│   │   └── repair.py           # 修复节点（定位+修复）
+│   │   ├── design.py           # 设计节点（需求→UML类图+活动图）
+│   │   ├── implement.py        # 实现节点（设计→Python代码）
+│   │   ├── test.py             # 测试节点（生成pytest+执行）
+│   │   └── repair.py           # 修复节点（失败→定位+修复）
 │   ├── tools/                  # 工具层
-│   │   ├── file_manager.py     # 文件读写
+│   │   ├── file_manager.py     # 文件读写 + 代码块解析
 │   │   ├── code_executor.py    # 代码执行沙箱
-│   │   └── test_runner.py      # pytest测试运行器
+│   │   └── test_runner.py      # pytest运行器
 │   └── llm/                    # LLM层
-│       ├── gateway.py          # DeepSeek统一接口
-│       └── prompts.py          # Prompt模板
+│       ├── gateway.py          # DeepSeek统一接口（流式+重试）
+│       └── prompts.py          # 四阶段 System Prompt 模板
 ├── benchmarks/                 # 基准测试用例
-│   └── cases/
-└── output/                     # 智能体输出目录
-    ├── design/                 # 设计文档 + UML图
-    ├── src/                    # 生成的代码
-    └── tests/                  # 生成的测试
+├── install.cmd                 # Windows 一键安装脚本
+├── pyproject.toml              # 包配置（定义 se-agent 命令）
+└── requirements.txt            # 依赖清单
 ```
 
 ## 工作流程
@@ -68,15 +121,25 @@ python -m agent.main --help
 需求文档(.md)
     │
     ▼
-[Design Node]  ──→ 设计文档 + Mermaid类图 + 活动图
+[Design Node]        → design/architecture.md + class_diagram.mmd + activity_diagram.mmd
     │
     ▼
-[Implement Node] ──→ Python代码
+[Implement Node]     → src/*.py
     │
     ▼
-[Test Node]       ──→ pytest测试 + 执行
+[Test Node]          → tests/*.py → pytest → 测试报告
     │
-    ├── 通过 ──→ 输出结果
+    ├── 全部通过 → 完成
     │
-    └── 失败 ──→ [Repair Node] ──→ 修复代码 ──→ 重新测试（最多3次）
+    └── 有失败 → [Repair Node] → 修复代码 → 重新测试（默认最多3次）
 ```
+
+## 技术栈
+
+| 层 | 技术 |
+|----|------|
+| 编排引擎 | LangGraph（状态图驱动） |
+| LLM 接入 | DeepSeek（OpenAI 兼容 SDK） |
+| 目标语言 | Python 3.11+ |
+| 测试框架 | pytest + pytest-json-report |
+| IDE 集成 | VS Code Extension（规划中） |
