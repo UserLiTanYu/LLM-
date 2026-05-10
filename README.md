@@ -10,7 +10,7 @@
 
 ```powershell
 # PowerShell（iex 在内存中执行，无需创建临时文件）
-iex (curl.exe -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.ps1)
+iex ((curl.exe -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.ps1) -join "`n")
 ```
 
 ```cmd
