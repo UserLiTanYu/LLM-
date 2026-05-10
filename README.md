@@ -4,48 +4,28 @@
 
 ## 安装
 
-### PowerShell
+### 一键安装（推荐）
+
+**把下面这行粘贴到终端执行即可**，脚本自动完成：克隆仓库 → 创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令 → 激活环境。
 
 ```powershell
-# 1. 克隆仓库
-git clone https://github.com/UserLiTanYu/LLM-.git
-cd LLM-
-
-# 2. 创建虚拟环境并激活
-python -m venv venv
-venv\Scripts\activate
-
-# 3. 安装（含全部依赖，注册 se-agent 命令）
-pip install -e .
-```
-
-### CMD
-
-```cmd
-:: 1. 克隆仓库
-git clone https://github.com/UserLiTanYu/LLM-.git
-cd LLM-
-
-:: 2. 创建虚拟环境并激活
-python -m venv venv
-venv\Scripts\activate
-
-:: 3. 安装（含全部依赖，注册 se-agent 命令）
-pip install -e .
-```
-
-### 一键安装（推荐，无需手动克隆）
-
-把下面一行粘贴到终端执行即可，脚本会自动完成：克隆仓库 → 创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令。
-
-```powershell
-# PowerShell（系统自带 5.x 版本请用 ; 分隔）
-curl -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.cmd -o install.cmd; .\install.cmd; del install.cmd
+# PowerShell（iex 在内存中执行，无需创建临时文件）
+iex (curl.exe -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.ps1)
 ```
 
 ```cmd
 :: CMD
 curl -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+### 手动安装
+
+```powershell
+git clone https://github.com/UserLiTanYu/LLM-.git
+cd LLM-
+python -m venv venv
+venv\Scripts\activate
+pip install -e .
 ```
 
 ## 使用
