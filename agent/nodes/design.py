@@ -1,14 +1,16 @@
 """设计节点 — 调用 LLM 将需求文档转化为系统设计方案。
 
 输出内容包括：
-  1. architecture.md      — 架构设计文档（Markdown）
+  1. architecture.md      — 架构设计文档（纯文字，不含图表代码）
   2. class_diagram.puml    — PlantUML 类图（核心实体及关系）
   3. activity_diagram.puml — PlantUML 活动图（核心业务流程）
 
-_extract_plantuml() 辅助函数从 LLM 输出中提取 PlantUML 代码块，
+_extract_plantuml() 辅助函数从 LLM 输出中逐块提取 PlantUML 代码，
 分别保存为独立的 .puml 文件以便渲染。
+architecture.md 中的 ```plantuml 块会被移除，避免重复。
 """
 
+import re
 from agent.llm.gateway import LLMGateway
 from agent.llm.prompts import DESIGN_SYSTEM
 from agent.tools.file_manager import FileManager
@@ -35,10 +37,7 @@ def run_design_node(llm: LLMGateway, requirements: str, fm: FileManager) -> dict
     # 调用 LLM 生成设计方案
     design_output = llm.chat(messages)
 
-    # 保存完整的架构设计文档
-    fm.write("design/architecture.md", design_output)
-
-    # 从输出中提取 PlantUML 图表，分别保存以便独立渲染
+    # 提取 PlantUML 图表，分别保存为独立 .puml 文件
     class_diagram = _extract_plantuml(design_output, "class")
     activity_diagram = _extract_plantuml(design_output, "start")
 
@@ -47,29 +46,52 @@ def run_design_node(llm: LLMGateway, requirements: str, fm: FileManager) -> dict
     if activity_diagram:
         fm.write("design/activity_diagram.puml", activity_diagram)
 
+    # 架构文档：移除所有 ```plantuml 代码块，只保留纯文字架构设计
+    arch_text = _strip_plantuml_blocks(design_output)
+    fm.write("design/architecture.md", arch_text)
+
     print("[Design] 设计方案已生成 → design/")
-    return {"design": design_output}
+    return {"design": arch_text}
+
+
+def _strip_plantuml_blocks(text: str) -> str:
+    """移除文本中所有 ```plantuml ... ``` 代码块及关联的章节标题。
+
+    先删除代码块，再清理留下的空标题行（如 "## 类图（PlantUML）" 等）。
+
+    参数:
+      text: 包含 PlantUML 代码块的 Markdown 文本
+
+    返回:
+      清理后的纯文字架构文档
+    """
+    # 删除所有 ```plantuml ... ``` 代码块
+    text = re.sub(r"```plantuml\s*\n.*?```\n?", "", text, flags=re.DOTALL)
+    # 删除图表相关的章节标题（含"类图""活动图""PlantUML""UML"等关键词）
+    text = re.sub(r"^##\s.*?(?:类图|活动图|PlantUML|UML|时序图|状态图|组件图|部署图).*?\n+", "", text, flags=re.MULTILINE)
+    return text.strip()
 
 
 def _extract_plantuml(text: str, diagram_keyword: str) -> str | None:
     """从 Markdown 文本中提取指定类型的 PlantUML 代码块。
 
-    匹配 ```plantuml ... ``` 包裹的代码块，
-    返回包含 diagram_keyword 关键字的 @startuml/@enduml 内容。
-    例如：_extract_plantuml(text, "class") 提取类图代码，
-         _extract_plantuml(text, "start") 提取活动图代码。
+    逐块匹配每个 ```plantuml ... ``` 代码块，独立提取其中的
+    @startuml/@enduml 内容，根据 diagram_keyword 区分图类型。
 
     参数:
       text:            包含 PlantUML 代码的 Markdown 文本
-      diagram_keyword: 图类型关键字（如 "class" 匹配类图、"start" 匹配活动图）
+      diagram_keyword: 图类型关键字（"class" 匹配类图、"start" 匹配活动图）
 
     返回:
       PlantUML 代码文本（@startuml ... @enduml），或 None（未找到）
     """
-    import re
-    # 匹配 ```plantuml ... ``` 包裹的代码块，提取从 @startuml 到 @enduml 之间的内容
-    pattern = rf"```plantuml\s*\n(.*?@startuml.*?{diagram_keyword}.*?@enduml.*?)```"
-    match = re.search(pattern, text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
+    # 先找到每个 ```plantuml ... ``` 块（不跨越块边界）
+    blocks = re.findall(r"```plantuml\s*\n(.*?)```", text, re.DOTALL)
+
+    for block in blocks:
+        # 在每个独立块中提取 @startuml ... @enduml 内容
+        match = re.search(rf"(@startuml.*?{diagram_keyword}.*?@enduml)", block, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+
     return None
