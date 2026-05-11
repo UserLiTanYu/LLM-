@@ -74,25 +74,36 @@ class FileManager:
 
 
 def parse_code_files(llm_output: str) -> dict[str, str]:
-    """从 LLM 输出中解析 Python 代码文件。
+    """从 LLM 输出中解析代码文件，支持多种语言。
 
     解析策略（按优先级）：
-      1. 匹配 ```python:filename.py\n...``` 带文件名的代码块
-      2. 回退：匹配 ```python\n...``` 不带文件名的代码块，自动编号为 generated_0.py
+      1. 匹配 ```语言:文件路径\n...``` 带文件名的代码块（如 python:app.py、html:templates/index.html）
+      2. 回退：匹配 ```语言\n...``` 不带文件名的代码块，自动编号
+
+    支持的语言标记：python、html、css、javascript、js
 
     参数:
       llm_output: LLM 返回的原始文本
 
     返回:
-      {文件名: 代码内容} 字典
+      {文件路径: 代码内容} 字典
     """
-    # 优先：匹配带文件名的代码块 ```python:filename.py
-    pattern = r"```python:([^\n]+)\n(.*?)```"
+    # 优先：匹配带文件名的代码块 ```lang:path/file.ext
+    pattern = r"```(\w+):([^\n]+)\n(.*?)```"
     matches = re.findall(pattern, llm_output, re.DOTALL)
-    if not matches:
-        # 回退：匹配不带文件名的代码块 ```python
-        pattern = r"```python\n(.*?)```"
-        matches = re.findall(pattern, llm_output, re.DOTALL)
-        if matches:
-            return {f"generated_{i}.py": code.strip() for i, code in enumerate(matches)}
-    return {filename.strip(): code.strip() for filename, code in matches}
+    if matches:
+        return {filename.strip(): code.strip() for lang, filename, code in matches}
+
+    # 回退：匹配不带文件名的代码块 ```lang
+    pattern = r"```(\w+)\n(.*?)```"
+    raw = re.findall(pattern, llm_output, re.DOTALL)
+    if raw:
+        # 根据语言类型确定扩展名
+        ext_map = {"python": "py", "html": "html", "css": "css", "javascript": "js", "js": "js"}
+        files = {}
+        for i, (lang, code) in enumerate(raw):
+            ext = ext_map.get(lang, "txt")
+            files[f"generated_{i}.{ext}"] = code.strip()
+        return files
+
+    return {}

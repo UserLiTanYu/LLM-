@@ -25,7 +25,19 @@ agent/
     └── test_runner.py   ← pytest 封装与结果解析
 ```
 
-## 执行流程（4+1 阶段）
+## 任务模式
+
+`--task` 参数控制流水线在哪个阶段停止，后续阶段自动运行前置阶段：
+
+| 模式 | 执行范围 | 终止点 |
+|------|---------|--------|
+| `design` | ① 设计 | 设计完成后停止 |
+| `implement` | ① 设计 → ② 实现 | 代码生成后停止 |
+| `test` | ① 设计 → ② 实现 → ③ 测试 | 测试执行后停止（不进修复循环） |
+| `repair` | ① 设计 → ② 实现 → ③ 测试 → ④ 修复 | 修复循环直至通过或达上限 |
+| `generate` | 同 `repair` | 全流程（默认） |
+
+## 执行流程
 
 启动方式：`se-agent --task generate --input requirements.md --output output/`
 
@@ -53,26 +65,28 @@ agent/
 ### ① 设计阶段（Design Node）— [agent/nodes/design.py](agent/nodes/design.py)
 
 - 将需求文档发送给 LLM（角色：资深软件架构师）
-- 生成 `design/architecture.md`（架构文档）、`design/class_diagram.puml`（类图）、`design/activity_diagram.puml`（活动图）
-- PlantUML 图用正则从输出中提取，单独保存以便渲染
+- 生成 `design/architecture.md`（纯文字架构文档）、`design/class_diagram.puml`（类图）、`design/activity_diagram.puml`（活动图）
+- PlantUML 图用正则从输出中提取，单独保存；架构文档去除 LLM 对话性开场白
+- PlantUML 图表通过 `design_raw` 传递给下游节点，实现和修复阶段可参考
 
 ### ② 实现阶段（Implement Node）— [agent/nodes/implement.py](agent/nodes/implement.py)
 
-- 将需求 + 设计方案发送给 LLM（角色：资深 Python 开发）
-- LLM 按要求输出带类型注解、PEP8、docstring 的代码
+- 将需求 + 设计方案（含 PlantUML 类图和活动图）发送给 LLM（角色：资深 Python 开发）
+- LLM 按要求输出带类型注解、PEP8、docstring 的代码，逐条对照验收条件实现
 - 用正则解析 ` ```python:filename.py ``` ` 格式的代码块，逐个写入 `src/` 目录
 
 ### ③ 测试阶段（Test Node）— [agent/nodes/test.py](agent/nodes/test.py)
 
 - 将需求 + 实现代码发送给 LLM（角色：资深测试工程师）
-- 生成覆盖正常路径、边界条件、异常的 pytest 用例
+- 逐条对照验收条件生成测试，使用 `@pytest.mark.parametrize` 和 `pytest.raises` 覆盖正常路径、边界值、异常路径
 - **实际执行 pytest**，通过 `pytest-json-report` 收集结构化结果（通过/失败数、失败详情）
 
 ### ④ 修复阶段（Repair Node）— [agent/nodes/repair.py](agent/nodes/repair.py)
 
 - 仅在测试失败且未超过最大修复次数时触发（默认最多3次）
-- 将代码 + 测试 + 失败详情发送给 LLM（角色：资深调试工程师）
-- LLM 定位 Bug 根因并输出修复后代码，覆盖 `src/` 中的文件
+- 将设计方案 + 代码 + 测试 + 失败详情发送给 LLM（角色：资深调试工程师）
+- LLM 对照设计方案理解预期行为后定位根因，输出仅变更的文件
+- 修复后代码重新解析为纯代码文本，避免诊断文字污染下游节点
 - 修复后**回到测试节点**重新执行，形成循环直到全部通过或达到上限
 
 ## 关键技术细节
@@ -84,7 +98,7 @@ agent/
 | **测试执行** | 子进程运行 pytest，自动将 `src/` 加入 `PYTHONPATH`，60s 超时保护 |
 | **输出结构** | `output/design/`（设计文档）、`output/src/`（生成代码）、`output/tests/`（测试代码） |
 | **Token 统计** | 每次 LLM 调用自动累计 input/output token 数，结束时统一输出 |
-| **两种模式** | `--task generate` 完整流水线 / `--task design` 仅设计方案 |
+| **五种模式** | `--task design|implement|test|repair|generate` 控制流水线长度，后续阶段自动运行前置阶段 |
 
 ## 模块间数据流
 
@@ -99,7 +113,8 @@ SEAgent (orchestrator.py)
   ▼
 AgentState (TypedDict)
   │  在 4 个节点间流转的共享状态字典
-  │  包含: requirements → design → code → test → repair
+  │  包含: requirements → design / design_raw → code → test → repair
+  │  design_raw 保留 PlantUML 图表，传递给下游节点
   ▼
 LLMGateway (gateway.py)
   │  封装 OpenAI SDK → DeepSeek API

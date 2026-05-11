@@ -30,17 +30,33 @@ install.cmd
 
 ## 使用
 
+### 任务模式
+
+| 模式 | 执行阶段 | 说明 |
+|------|---------|------|
+| `design` | 需求分析 → 系统设计 | 生成架构文档和 PlantUML 图表 |
+| `implement` | 需求分析 → 系统设计 → 代码实现 | 生成 Python 代码 |
+| `test` | 需求分析 → … → 测试执行 | 运行测试但不进修复循环 |
+| `repair` | 需求分析 → … → 自动修复 | 全流程，测试失败自动修 Bug |
+| `generate` | 同 `repair` | 全流程（默认） |
+
 ### PowerShell
 
 ```powershell
 # 设置密钥（每次新开终端执行一次）
 $env:DEEPSEEK_API_KEY = "sk-your-key"
 
-# 完整流水线
-se-agent --task generate --input requirements.md --output output/
-
 # 仅设计阶段
 se-agent --task design --input requirements.md --output output/
+
+# 设计 + 代码实现
+se-agent --task implement --input requirements.md --output output/
+
+# 设计 + 实现 + 测试（不进修复循环）
+se-agent --task test --input requirements.md --output output/
+
+# 完整流水线（含自动修复）
+se-agent --task generate --input requirements.md --output output/
 
 # 指定密钥和最大修复次数
 se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
@@ -52,11 +68,17 @@ se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-rep
 :: 设置密钥（每次新开终端执行一次）
 set DEEPSEEK_API_KEY=sk-your-key
 
-:: 完整流水线
-se-agent --task generate --input requirements.md --output output/
-
 :: 仅设计阶段
 se-agent --task design --input requirements.md --output output/
+
+:: 设计 + 代码实现
+se-agent --task implement --input requirements.md --output output/
+
+:: 设计 + 实现 + 测试（不进修复循环）
+se-agent --task test --input requirements.md --output output/
+
+:: 完整流水线（含自动修复）
+se-agent --task generate --input requirements.md --output output/
 
 :: 指定密钥和最大修复次数
 se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
