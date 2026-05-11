@@ -69,6 +69,9 @@ def _strip_plantuml_blocks(text: str) -> str:
     text = re.sub(r"```plantuml\s*\n.*?```\n?", "", text, flags=re.DOTALL)
     # 删除图表相关的章节标题（含"类图""活动图""PlantUML""UML"等关键词）
     text = re.sub(r"^##\s.*?(?:类图|活动图|PlantUML|UML|时序图|状态图|组件图|部署图).*?\n+", "", text, flags=re.MULTILINE)
+    # 删除紧邻的连续分隔线（---）和其后描述图表的过渡句（如"该活动图描述了..."）
+    text = re.sub(r"\n---\n---\n.*?(?:图|流程|业务|描述).*", "", text, flags=re.DOTALL)
+    text = re.sub(r"\n---\n.*?(?:图|流程|业务|描述).*", "", text, flags=re.DOTALL)
     return text.strip()
 
 
