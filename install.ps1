@@ -21,7 +21,7 @@ Write-Host "[2/4] Git ready" -ForegroundColor Green
 
 # Clone repo (skip if already inside the project directory)
 if (Test-Path "pyproject.toml") {
-    Write-Host "[2/4] Already inside project directory, skipping clone" -ForegroundColor Green
+    Write-Host "[3/4] Already inside project directory, skipping clone" -ForegroundColor Green
 } else {
     $repoDir = Join-Path (Get-Location) "LLM-"
     if (-not (Test-Path $repoDir)) {
@@ -32,7 +32,7 @@ if (Test-Path "pyproject.toml") {
             exit 1
         }
     } else {
-        Write-Host "[2/4] Repository already exists, skipping clone" -ForegroundColor Yellow
+        Write-Host "[3/4] Repository already exists, skipping clone" -ForegroundColor Yellow
     }
     Set-Location $repoDir
 }

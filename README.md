@@ -4,7 +4,6 @@
 
 ## 安装
 
-### 一键安装（推荐）
 
 把下面**三行**粘贴到终端执行：
 
@@ -16,28 +15,18 @@ cd LLM-
 ```
 
 ```cmd
-:: CMD — 克隆并运行本地安装脚本
+# cmd — 克隆并运行本地安装脚本
 git clone https://github.com/UserLiTanYu/LLM-.git
 cd LLM-
 install.cmd
 ```
 
-脚本自动完成：创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令。
 
 > **注意**：如果你在国内且 `git clone` 速度慢，可以使用镜像加速：
 > ```powershell
 > git clone https://ghproxy.com/https://github.com/UserLiTanYu/LLM-.git
 > ```
 
-### 手动安装
-
-```powershell
-git clone https://github.com/UserLiTanYu/LLM-.git
-cd LLM-
-python -m venv venv
-venv\Scripts\activate
-pip install -e .
-```
 
 ## 使用
 
@@ -48,10 +37,10 @@ pip install -e .
 $env:DEEPSEEK_API_KEY = "sk-your-key"
 
 # 完整流水线
-se-agent --task generate --input 需求文档.md --output output/
+se-agent --task generate --input requirements.md --output output/
 
 # 仅设计阶段
-se-agent --task design --input 需求文档.md --output output/
+se-agent --task design --input requirements.md --output output/
 
 # 指定密钥和最大修复次数
 se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
@@ -64,22 +53,14 @@ se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-rep
 set DEEPSEEK_API_KEY=sk-your-key
 
 :: 完整流水线
-se-agent --task generate --input 需求文档.md --output output/
+se-agent --task generate --input requirements.md --output output/
 
 :: 仅设计阶段
-se-agent --task design --input 需求文档.md --output output/
+se-agent --task design --input requirements.md --output output/
 
 :: 指定密钥和最大修复次数
 se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-repair 5
 ```
-
-## 基准测试结果
-
-| 场景 | 用例数 | 通过 | 修复迭代 | 结果 |
-|------|--------|------|----------|------|
-| 计算器模块 | 53 | 51 | 3轮 | 96.2% |
-
-**剩余 2 个失败分析**：均为测试生成偏差——浮点精度比较未用 `pytest.approx`、边界用例与需求矛盾（期望除以零返回 ∞ 而非抛异常），属测试生成质量问题而非代码 Bug。
 
 ## 项目结构
 
