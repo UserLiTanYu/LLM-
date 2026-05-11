@@ -8,7 +8,7 @@
 
 | 阶段 | 输入 | 输出 | 对应要求 |
 |------|------|------|----------|
-| 分析+设计 | 自然语言需求文档/PRD | ①架构设计文档 ②Mermaid类图 ③Mermaid活动图 | 组合a：至少两种UML图 |
+| 分析+设计 | 自然语言需求文档/PRD | ①架构设计文档 ②PlantUML类图 ③PlantUML活动图 | 组合a：至少两种UML图 |
 | 实现 | 需求 + 设计模型 | 可运行的 Python 代码 | 组合b前半 |
 | 测试 | 需求 + 代码 | pytest单元测试 + 执行结果报告 | 组合b后半 |
 | 修复 | 测试失败信息 + 代码 | Bug定位 + 修复补丁 + 修复说明 | 额外加分项 |
@@ -32,7 +32,7 @@
 | CLI 框架 | **argparse** | Python标准库，满足命令行启动要求 |
 | IDE 集成 | **VS Code Extension (TypeScript)** | 满足课程要求，覆盖范围最广 |
 | 测试框架 | **pytest** | 运行生成的测试用例，JSON报告输出 |
-| 输出格式 | **Mermaid** (类图+活动图) + **Markdown** (文档) | 文本化、可版本管理 |
+| 输出格式 | **PlantUML** (类图+活动图) + **Markdown** (文档) | 文本化、可版本管理 |
 | 语言 | **Python**（智能体核心 + 生成目标代码）+ **TypeScript**（VS Code插件） | 智能体和生成代码同语言，降低复杂度 |
 
 ---
@@ -107,7 +107,7 @@
 │  ┌───────────────────────────┐  │
 │  │ 结果展示面板                │  │
 │  │ (Webview Panel)           │  │
-│  │ - 设计图 (Mermaid渲染)     │  │
+│  │ - 设计图 (PlantUML渲染)     │  │
 │  │ - 代码文件 (Diff查看)      │  │
 │  │ - 测试报告 (表格)          │  │
 │  └───────────────────────────┘  │
@@ -129,13 +129,13 @@
 - **处理流程**：
   1. 需求分析：提取关键实体、行为、状态
   2. 架构设计：模块划分、职责分配、技术选型建议
-  3. UML生成：Mermaid格式类图（classDiagram）+ 活动图（flowchart或stateDiagram）
+  3. UML生成：PlantUML格式类图 + 活动图
 - **输出**：
   - `design/architecture.md` — 架构设计说明
-  - `design/class_diagram.mmd` — 类图（至少包含实体类+关系）
-  - `design/activity_diagram.mmd` — 活动图（核心业务流程）
+  - `design/class_diagram.puml` — 类图（至少包含实体类+关系）
+  - `design/activity_diagram.puml` — 活动图（核心业务流程）
 - **Prompt策略**：分两步走——先分析需求提取实体和流程，再生成UML图；输出格式用代码块标记约束
-- **工具调用**：File Write（输出Mermaid文件）
+- **工具调用**：File Write（输出PlantUML文件）
 
 ### 3. Implement Node（实现节点）
 - **输入**：需求 + 设计文档（类图+活动图）
@@ -170,7 +170,7 @@
 ### 7. VS Code Extension
 - 命令注册：`agent.generate` / `agent.design` / `agent.test`
 - 右键菜单：在.md文件上右键触发"生成代码"
-- Webview Panel：展示Mermaid图 + 代码Diff + 测试报告
+- Webview Panel：展示PlantUML图 + 代码Diff + 测试报告
 - 调用方式：spawn CLI进程，通过stdout JSON-lines获取进度
 
 ---
@@ -186,7 +186,7 @@
 
 ### 第2-3周：核心引擎开发
 - [ ] 实现 LLM Gateway（统一调用接口）
-- [ ] 实现 Design Node（需求→设计文档+Mermaid图）
+- [ ] 实现 Design Node（需求→设计文档+PlantUML图）
 - [ ] 实现 Implement Node（设计→代码）
 - [ ] 实现 Test Node（代码→测试用例+执行）
 - [ ] 实现 Repair Node（失败→修复）
@@ -315,7 +315,7 @@ llm-se-agent/
    export DEEPSEEK_API_KEY="sk-xxx"
    python -m agent.main --task generate --input benchmarks/cases/case1_calculator/requirements.md --output output/
    ```
-3. **IDE集成测试**：在VS Code中打开需求文件，右键触发"AI Agent: Generate"，验证结果面板展示Mermaid图+代码+测试报告
+3. **IDE集成测试**：在VS Code中打开需求文件，右键触发"AI Agent: Generate"，验证结果面板展示PlantUML图+代码+测试报告
 4. **端到端测试**：从需求文档到可运行代码+测试通过的完整流程
 5. **修复闭环测试**：故意在基准测试中引入Bug代码，验证Repair节点能定位并修复
 

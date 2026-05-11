@@ -101,7 +101,7 @@ se-agent --task generate --input req.md --output out/ --api-key sk-xxx --max-rep
 需求文档(.md)
     │
     ▼
-[Design Node]        → design/architecture.md + class_diagram.mmd + activity_diagram.mmd
+[Design Node]        → design/architecture.md + class_diagram.puml + activity_diagram.puml
     │
     ▼
 [Implement Node]     → src/*.py
