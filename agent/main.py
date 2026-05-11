@@ -1,13 +1,17 @@
 """CLI 入口模块 — 软件工程智能体的命令行入口。
 
 使用方式：
-    python -m agent.main --task generate --input requirements.md --output output/
-    python -m agent.main --task design --input requirements.md --output output/
-    python -m agent.main --task generate --input requirements.md --output output/ --api-key sk-xxx
+    python -m agent --task design --input requirements.md --output output/
+    python -m agent --task implement --input requirements.md --output output/
+    python -m agent --task test --input requirements.md --output output/
+    python -m agent --task generate --input requirements.md --output output/
 
-支持两种任务模式：
-  - generate: 完整流水线（设计 → 实现 → 测试 → 修复循环）
-  - design:   仅生成设计方案
+支持五种任务模式：
+  - design:    仅设计方案
+  - implement: 设计 → 实现（生成代码）
+  - test:      设计 → 实现 → 测试（不进修复循环）
+  - repair:    设计 → 实现 → 测试 → 修复（含循环）
+  - generate:  同 repair，完整流水线
 
 参数说明：
   --task       任务类型，默认 generate
@@ -35,13 +39,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m agent.main --task generate --input req.md --output out/
-  python -m agent.main --task design --input req.md --output out/
-  python -m agent.main --task generate --input req.md --output out/ --api-key sk-xxx
+  python -m agent --task design    --input req.md --output out/
+  python -m agent --task implement --input req.md --output out/
+  python -m agent --task test      --input req.md --output out/
+  python -m agent --task generate  --input req.md --output out/ --api-key sk-xxx
         """,
     )
-    parser.add_argument("--task", choices=["generate", "design"], default="generate",
-                        help="任务类型: generate（完整流水线）或 design（仅设计）")
+    parser.add_argument("--task",
+                        choices=["design", "implement", "test", "repair", "generate"],
+                        default="generate",
+                        help="任务类型: design|implement|test|repair|generate")
     parser.add_argument("--input", required=True, help="需求文档路径（Markdown 格式）")
     parser.add_argument("--output", default="output", help="输出目录（默认: output）")
     parser.add_argument("--api-key", default="", help="DeepSeek API 密钥（或设置环境变量 DEEPSEEK_API_KEY）")
@@ -80,20 +87,9 @@ Examples:
     print(f"执行任务: {args.task}")
     print(f"LLM模型: {config.model}")
 
-    # 根据任务类型分发
-    if args.task == "design":
-        # 仅设计模式：直接调用设计节点，不启动完整流水线
-        from agent.tools.file_manager import FileManager
-        from agent.llm.gateway import LLMGateway
-        from agent.nodes.design import run_design_node
-
-        llm = LLMGateway(config)
-        fm = FileManager(config.output_dir)
-        run_design_node(llm, requirements, fm)
-    else:
-        # 完整流水线模式：启动 LangGraph 工作流
-        agent = SEAgent(config)
-        agent.run(requirements)
+    # 统一通过 SEAgent 执行，task 参数控制流水线长度
+    agent = SEAgent(config, task=args.task)
+    agent.run(requirements)
 
 
 if __name__ == "__main__":

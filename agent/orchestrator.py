@@ -51,22 +51,26 @@ class AgentState(TypedDict):
 class SEAgent:
     """软件工程智能体 — 编排 设计→实现→测试→修复 的完整循环。
 
-    使用 LangGraph 的 StateGraph 构建工作流：
-    - 4 个处理节点：design、implement、test、repair
-    - 条件边：测试失败且未超限时进入修复循环
+    使用 LangGraph 的 StateGraph 构建工作流，根据 task 模式决定执行范围：
+    - design:    仅设计
+    - implement: 设计 → 实现
+    - test:      设计 → 实现 → 测试（不进修复循环）
+    - repair:    设计 → 实现 → 测试 → 修复（含循环）
+    - generate:  同 repair，全流程
     """
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig, task: str = "generate"):
         """初始化智能体，创建 LLM 网关、文件管理器和测试运行器。"""
         self.config = config
+        self.task = task
         self.llm = LLMGateway(config)
         self.fm = FileManager(config.output_dir)
         self.test_runner = TestRunner(config.output_dir)
 
     def run(self, requirements: str) -> dict:
-        """运行完整流水线，返回最终状态字典。"""
+        """运行流水线，返回最终状态字典。根据 task 模式决定执行到哪个阶段。"""
         print("=" * 60)
-        print("软件工程智能体启动")
+        print(f"软件工程智能体启动 (模式: {self.task})")
         print("=" * 60)
 
         # 构建并编译 LangGraph 工作流
@@ -94,10 +98,13 @@ class SEAgent:
         return result
 
     def _build_graph(self) -> StateGraph:
-        """构建 LangGraph 有向图，定义节点和边。
+        """构建 LangGraph 有向图，根据 task 模式决定流水线长度。
 
-        返回包含以下结构的 StateGraph：
-          design → implement → test → [条件分支] → repair → test（循环）
+        design:    design → END
+        implement: design → implement → END
+        test:      design → implement → test → END
+        repair:    design → implement → test → [条件] → repair → test（循环）
+        generate:  同 repair
         """
         workflow = StateGraph(AgentState)
 
@@ -110,19 +117,27 @@ class SEAgent:
         # 设置入口节点
         workflow.set_entry_point("design")
 
-        # 定义顺序边：design → implement → test
-        workflow.add_edge("design", "implement")
-        workflow.add_edge("implement", "test")
+        if self.task == "design":
+            workflow.add_edge("design", END)
 
-        # 测试后的条件分支：通过/超限 → END，失败 → repair
-        workflow.add_conditional_edges(
-            "test",
-            self._should_repair,
-            {"repair": "repair", "done": END}
-        )
+        elif self.task == "implement":
+            workflow.add_edge("design", "implement")
+            workflow.add_edge("implement", END)
 
-        # 修复后重新测试
-        workflow.add_edge("repair", "test")
+        elif self.task == "test":
+            workflow.add_edge("design", "implement")
+            workflow.add_edge("implement", "test")
+            workflow.add_edge("test", END)
+
+        else:  # repair / generate
+            workflow.add_edge("design", "implement")
+            workflow.add_edge("implement", "test")
+            workflow.add_conditional_edges(
+                "test",
+                self._should_repair,
+                {"repair": "repair", "done": END}
+            )
+            workflow.add_edge("repair", "test")
 
         return workflow
 
@@ -184,15 +199,18 @@ class SEAgent:
         return "repair"
 
     def _print_summary(self, state: AgentState):
-        """打印流水线执行摘要。"""
+        """打印流水线执行摘要（仅显示已执行阶段的信息）。"""
         print("\n" + "=" * 60)
         print("执行摘要")
         print("=" * 60)
         print(f"  设计文档: design/architecture.md")
-        print(f"  生成代码: src/ ({len(state['code_files'])} 个文件)")
-        print(f"  测试文件: tests/")
-        tr = state["test_results"]
-        print(f"  测试结果: 通过 {tr.get('passed', 0)}, 失败 {tr.get('failed', 0)}")
-        print(f"  修复次数: {state['iteration']}")
+        if state.get("code_files"):
+            print(f"  生成代码: src/ ({len(state['code_files'])} 个文件)")
+        if state.get("test_results"):
+            tr = state["test_results"]
+            print(f"  测试文件: tests/")
+            print(f"  测试结果: 通过 {tr.get('passed', 0)}, 失败 {tr.get('failed', 0)}")
+            print(f"  结论: {'全部通过' if state['test_passed'] else '存在失败'}")
+        if state.get("iteration", 0) > 0:
+            print(f"  修复次数: {state['iteration']}")
         print(f"  Token消耗: {self.llm.token_usage}")
-        print(f"  结论: {'测试通过' if state['test_passed'] else '存在未修复的失败'}")
