@@ -51,7 +51,7 @@ def run_design_node(llm: LLMGateway, requirements: str, fm: FileManager) -> dict
     fm.write("design/architecture.md", arch_text)
 
     print("[Design] 设计方案已生成 → design/")
-    return {"design": arch_text}
+    return {"design": arch_text, "design_raw": design_output}
 
 
 def _strip_plantuml_blocks(text: str) -> str:
@@ -72,6 +72,8 @@ def _strip_plantuml_blocks(text: str) -> str:
     # 删除紧邻的连续分隔线（---）和其后描述图表的过渡句（如"该活动图描述了..."）
     text = re.sub(r"\n---\n---\n.*?(?:图|流程|业务|描述).*", "", text, flags=re.DOTALL)
     text = re.sub(r"\n---\n.*?(?:图|流程|业务|描述).*", "", text, flags=re.DOTALL)
+    # 去除 LLM 开场白：删除第一个 ## 标题前的对话性文字
+    text = re.sub(r"^.*?(?=##\s)", "", text, flags=re.DOTALL)
     return text.strip()
 
 

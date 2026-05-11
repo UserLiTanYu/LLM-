@@ -17,7 +17,8 @@ from agent.tools.file_manager import FileManager, parse_code_files
 
 
 def run_repair_node(llm: LLMGateway, code_output: str, test_output: str,
-                    failures: list[dict], fm: FileManager) -> dict:
+                    failures: list[dict], fm: FileManager,
+                    design: str = "") -> dict:
     """分析测试失败并修复代码。返回状态更新字典。
 
     参数:
@@ -26,6 +27,7 @@ def run_repair_node(llm: LLMGateway, code_output: str, test_output: str,
       test_output: 测试代码（原始 LLM 输出）
       failures:    失败列表 [{"name": 测试名, "message": 错误信息}, ...]
       fm:          文件管理器
+      design:      设计方案全文（含 PlantUML 图表），用于理解架构意图
 
     返回:
       {"repair_output": 修复方案全文, "code_output": 修复后代码, "code_files": {文件名: 内容}}
@@ -37,8 +39,9 @@ def run_repair_node(llm: LLMGateway, code_output: str, test_output: str,
         f"失败测试: {f['name']}\n错误信息: {f['message']}" for f in failures
     )
 
-    # 拼接修复上下文：代码 + 测试 + 失败信息
-    prompt = f"""## 当前代码
+    # 拼接修复上下文：设计 + 代码 + 测试 + 失败信息
+    design_section = f"## 设计方案\n{design}\n\n" if design else ""
+    prompt = f"""{design_section}## 当前代码
 {code_output}
 
 ## 测试代码
@@ -59,15 +62,18 @@ def run_repair_node(llm: LLMGateway, code_output: str, test_output: str,
 
     # 解析修复后的代码文件，覆盖写入 src/
     files = parse_code_files(repair_output)
-    repaired = False
     for filename, content in files.items():
         path = f"src/{filename}" if not filename.startswith("src/") else filename
         fm.write(path, content)
-        repaired = True
 
-    if not repaired:
+    if not files:
         # 回退：无法解析出代码时，保存修复分析文档
         fm.write("src/repair_analysis.md", repair_output)
 
+    # 用解析后的纯代码构建 code_output，避免诊断文字污染后续节点
+    clean_code = "\n\n".join(
+        f"```python:{fname}\n{content}\n```" for fname, content in files.items()
+    )
+
     print(f"[Repair] 修复完成，已更新 {len(files)} 个文件")
-    return {"repair_output": repair_output, "code_output": repair_output, "code_files": files}
+    return {"repair_output": repair_output, "code_output": clean_code, "code_files": files}

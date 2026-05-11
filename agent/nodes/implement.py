@@ -32,11 +32,11 @@ def run_implement_node(llm: LLMGateway, requirements: str, design: str, fm: File
     """
     print("[Implement] 根据需求和设计生成代码...")
 
-    # 拼接需求 + 方案作为 User Prompt
+    # 拼接需求 + 方案作为 User Prompt（方案含 PlantUML 类图和活动图）
     prompt = f"""## 需求文档
 {requirements}
 
-## 设计方案
+## 设计方案（含 PlantUML 类图和活动图）
 {design}
 
 请根据以上需求和设计，生成完整的Python代码。

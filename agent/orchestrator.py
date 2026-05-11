@@ -36,7 +36,8 @@ class AgentState(TypedDict):
     每个节点读取需要的字段，更新自己负责的字段后返回。
     """
     requirements: str      # 原始需求文档内容
-    design: str            # LLM 生成的设计方案（Markdown）
+    design: str            # LLM 生成的设计方案（纯文字 Markdown）
+    design_raw: str        # LLM 生成的原始设计方案（含 PlantUML 图表）
     code_output: str       # LLM 生成的代码（原始文本）
     code_files: dict       # 解析后的代码文件 {文件名: 内容}
     test_output: str       # LLM 生成的测试代码（原始文本）
@@ -76,6 +77,7 @@ class SEAgent:
         initial_state: AgentState = {
             "requirements": requirements,
             "design": "",
+            "design_raw": "",
             "code_output": "",
             "code_files": {},
             "test_output": "",
@@ -125,15 +127,16 @@ class SEAgent:
         return workflow
 
     def _design_node(self, state: AgentState) -> AgentState:
-        """设计节点 — 调用 LLM 生成架构设计和 Mermaid 图表。"""
+        """设计节点 — 调用 LLM 生成架构设计和 PlantUML 图表。"""
         result = run_design_node(self.llm, state["requirements"], self.fm)
         state["design"] = result["design"]
+        state["design_raw"] = result["design_raw"]
         return state
 
     def _implement_node(self, state: AgentState) -> AgentState:
         """实现节点 — 根据需求和设计方案生成 Python 代码。"""
         result = run_implement_node(
-            self.llm, state["requirements"], state["design"], self.fm
+            self.llm, state["requirements"], state["design_raw"], self.fm
         )
         state["code_output"] = result["code_output"]
         state["code_files"] = result["code_files"]
@@ -156,7 +159,7 @@ class SEAgent:
         failures = state["test_results"].get("failures", [])
         result = run_repair_node(
             self.llm, state["code_output"], state["test_output"],
-            failures, self.fm,
+            failures, self.fm, state["design_raw"],
         )
         state["code_output"] = result["code_output"]
         state["code_files"] = result["code_files"]
