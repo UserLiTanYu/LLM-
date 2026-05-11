@@ -22,20 +22,24 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 克隆仓库（如果不在项目目录内）
-set REPO_DIR=LLM-
-if not exist "%REPO_DIR%\" (
-    echo [2/4] 克隆仓库...
-    git clone https://github.com/UserLiTanYu/LLM-.git
-    if errorlevel 1 (
-        echo [错误] 克隆失败，请检查网络连接
-        pause
-        exit /b 1
-    )
+REM 克隆仓库（已在项目目录内则跳过）
+if exist "pyproject.toml" (
+    echo [2/4] 已在项目目录，跳过克隆
 ) else (
-    echo [2/4] 仓库已存在，跳过克隆
+    set REPO_DIR=LLM-
+    if not exist "!REPO_DIR!\" (
+        echo [2/4] 克隆仓库...
+        git clone https://github.com/UserLiTanYu/LLM-.git
+        if errorlevel 1 (
+            echo [错误] 克隆失败，请检查网络连接
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo [2/4] 仓库已存在，跳过克隆
+    )
+    cd /d "!REPO_DIR!"
 )
-cd /d "%REPO_DIR%"
 
 REM 创建虚拟环境
 if not exist "venv\" (

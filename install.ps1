@@ -19,20 +19,23 @@ if (-not $git) {
 }
 Write-Host "[2/4] Git ready" -ForegroundColor Green
 
-# Clone repo
-$repoDir = Join-Path (Get-Location) "LLM-"
-if (-not (Test-Path $repoDir)) {
-    Write-Host "[3/4] Cloning repository..." -ForegroundColor Yellow
-    git clone https://github.com/UserLiTanYu/LLM-.git
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[ERROR] Clone failed. Check network or proxy" -ForegroundColor Red
-        exit 1
-    }
+# Clone repo (skip if already inside the project directory)
+if (Test-Path "pyproject.toml") {
+    Write-Host "[2/4] Already inside project directory, skipping clone" -ForegroundColor Green
 } else {
-    Write-Host "[3/4] Repository already exists, skipping clone" -ForegroundColor Yellow
+    $repoDir = Join-Path (Get-Location) "LLM-"
+    if (-not (Test-Path $repoDir)) {
+        Write-Host "[2/4] Cloning repository..." -ForegroundColor Yellow
+        git clone https://github.com/UserLiTanYu/LLM-.git
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] Clone failed. Check network or proxy" -ForegroundColor Red
+            exit 1
+        }
+    } else {
+        Write-Host "[2/4] Repository already exists, skipping clone" -ForegroundColor Yellow
+    }
+    Set-Location $repoDir
 }
-
-Set-Location $repoDir
 
 # Create venv
 if (-not (Test-Path "venv")) {
