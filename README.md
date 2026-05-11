@@ -6,17 +6,28 @@
 
 ### 一键安装（推荐）
 
-**把下面这行粘贴到终端执行即可**，脚本自动完成：克隆仓库 → 创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令 → 激活环境。
+把下面**三行**粘贴到终端执行：
 
 ```powershell
-# PowerShell（iex 在内存中执行，无需创建临时文件）
-iex ((curl.exe -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.ps1) -join "`n")
+# PowerShell — 克隆并运行本地安装脚本
+git clone https://github.com/UserLiTanYu/LLM-.git
+cd LLM-
+.\install.ps1
 ```
 
 ```cmd
-:: CMD
-curl -fsSL https://raw.githubusercontent.com/UserLiTanYu/LLM-/main/install.cmd -o install.cmd && install.cmd && del install.cmd
+:: CMD — 克隆并运行本地安装脚本
+git clone https://github.com/UserLiTanYu/LLM-.git
+cd LLM-
+install.cmd
 ```
+
+脚本自动完成：创建虚拟环境 → 安装依赖 → 注册 `se-agent` 命令。
+
+> **注意**：如果你在国内且 `git clone` 速度慢，可以使用镜像加速：
+> ```powershell
+> git clone https://ghproxy.com/https://github.com/UserLiTanYu/LLM-.git
+> ```
 
 ### 手动安装
 
