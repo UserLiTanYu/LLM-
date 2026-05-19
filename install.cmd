@@ -60,10 +60,10 @@ echo ========================================
 echo   安装成功！
 echo.
 echo   使用前请设置 API Key：
-echo     PowerShell: $env:DEEPSEEK_API_KEY = "sk-你的key"
+echo     PowerShell: $env:DEEPSEEK_API_KEY = sk-你的key
 echo     CMD:        set DEEPSEEK_API_KEY=sk-你的key
 echo.
 echo   然后运行：
-echo     se-agent --task generate --input 需求.md --output output/
+echo     se-agent --task generate --input requirements.md --output output/
 echo ========================================
 pause
